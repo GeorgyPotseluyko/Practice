@@ -2,10 +2,10 @@ name: .NET Core CI
 
 on:
   push:
-    branches: [ "main", "task04" ]
+    branches: [ "task*" ]
   pull_request:
-    branches: [ "main", "task04" ]
-
+    branches: [ "main" ]
+    
 jobs:
   build:
     runs-on: ubuntu-latest
