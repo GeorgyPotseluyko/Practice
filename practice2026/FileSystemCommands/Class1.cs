@@ -1,15 +1,20 @@
 ﻿using System;
 using System.IO;
 
+[Version(0, 0)]
+[DisplayName("Размер папки")]
 public class DirectorySizeCommand : ICommand
 {
+    [DisplayName("Путь")]
     public string Path;
 
+    [DisplayName("Размер папки")]
     public DirectorySizeCommand(string path)
     {
         Path = path;
     }
 
+    [DisplayName("Размер папки")]
     public long DirectorySize()
     {
         if (!Directory.Exists(Path))
@@ -35,17 +40,24 @@ public class DirectorySizeCommand : ICommand
     }
 }
 
+[Version(0, 1)]
+[DisplayName("Поиск файлов")]
 public class FindFilesCommand : ICommand
 {
+    [DisplayName("Путь")]
     public string Path;
+
+    [DisplayName("Маска")]
     public string Mask;
 
+    [DisplayName("Поиск Файлов")]
     public FindFilesCommand(string path, string mask)
     {
         Path = path;
         Mask = mask;
     }
 
+    [DisplayName("Поиск файлов")]
     public string[] FindFiles()
     {
         if (!Directory.Exists(Path))

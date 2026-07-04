@@ -1,60 +1,94 @@
 ﻿using System;
-using System.Reflection;
 using System.IO;
+using System.Reflection;
 
-class Program
+public class Program
 {
-    static void Main()
+    public static void Main(string[] args)
     {
-        string dllPath = Path.Combine(AppContext.BaseDirectory, "FileSystemCommands.dll");
-        
+        string dllPath;
+
+        if (args.Length > 0)
+        {
+            dllPath = args[0];
+        }
+        else
+        {
+            dllPath = Path.Combine(AppContext.BaseDirectory, "FileSystemCommands.dll");
+        }
+
         try
         {
-            Assembly assembly = Assembly.LoadFrom(dllPath);
-
-            Console.WriteLine("Доступные команды: DirectorySize, FindFiles");
-            Console.Write("Введите имя команды: ");
-            string commandName = Console.ReadLine();
-
-            Console.Write("Введите путь к папке: ");
-            string path = Console.ReadLine();
-
-            string? mask = null;
-            if (commandName == "FindFiles")
-            {
-                Console.Write("Введите маску: ");
-                mask = Console.ReadLine();
-            }
-
-            foreach (Type type in assembly.GetExportedTypes())
-            {
-                if (typeof(ICommand).IsAssignableFrom(type) && type.IsClass)
-                {
-                    if (type.Name != commandName + "Command")
-                    {
-                        continue;
-                    }
-
-                    object instance;
-
-                    if (commandName == "FindFiles")
-                    {
-                        instance = Activator.CreateInstance(type, path, mask)!;
-                    }
-                    else
-                    {
-                        instance = Activator.CreateInstance(type, path)!;
-                    }
-
-                    var command = (ICommand)instance;
-                    command.Execute();
-                    break;
-                }
-            }
+            PrintLibraryInfo(dllPath);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка: {ex.Message}");
+            Console.WriteLine($"Ошибка загрузки сборки: {ex.Message}");
+        }
+    }
+
+    public static void PrintLibraryInfo(string dllPath)
+    {
+        Assembly assembly = Assembly.LoadFrom(dllPath);
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            if (type.IsClass)
+            {
+                Console.WriteLine($"Класс: {type.FullName}");
+
+                Console.WriteLine("Атрибуты класса:");
+                foreach (object attribute in type.GetCustomAttributes(false))
+                {
+                    Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
+                }
+                Console.WriteLine();
+
+                Console.WriteLine("Конструкторы:");
+                ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+                foreach (ConstructorInfo constructor in constructors)
+                {
+                    Console.WriteLine($"Конструктор: {constructor.Name}");
+
+                    Console.WriteLine("Параметры конструктора:");
+                    foreach (ParameterInfo parameter in constructor.GetParameters())
+                    {
+                        Console.WriteLine($"Параметр: {parameter.Name} - {parameter.ParameterType}");
+                    }
+
+                    Console.WriteLine("Атрибуты конструктора:");
+                    foreach (object attribute in constructor.GetCustomAttributes(false))
+                    {
+                        Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
+                    }
+                }
+                Console.WriteLine();
+
+                Console.WriteLine("Методы:");
+                MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+
+                foreach (MethodInfo method in methods)
+                {
+                    if (!method.IsSpecialName)
+                    {
+                        Console.WriteLine($"Метод: {method.Name}");
+                        Console.WriteLine($"Возвращаемый тип: {method.ReturnType}");
+
+                        Console.WriteLine("Параметры метода:");
+                        foreach (ParameterInfo parameter in method.GetParameters())
+                        {
+                            Console.WriteLine($"Параметр: {parameter.Name} - {parameter.ParameterType}");
+                        }
+
+                        Console.WriteLine("Атрибуты метода:");
+                        foreach (object attribute in method.GetCustomAttributes(false))
+                        {
+                            Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
+                        }
+                    }
+                }
+            }
         }
     }
 }
