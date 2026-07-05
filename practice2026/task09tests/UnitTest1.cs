@@ -2,41 +2,32 @@
 using System.IO;
 using Xunit;
 
-[Version(1, 0)]
-[DisplayName("Класс для теста")]
-public class TestClass
-{
-    public TestClass(int number){}
-
-    [DisplayName("Метод для теста")]
-    public void TestMethod(string text, int count){}
-}
-
 public class Tests
 {
     [Fact]
-    public void Program_ShouldPrintLibraryInfo()
+    public void PluginRunner_ShouldExecutePluginsInCorrectOrder()
     {
-        string dllPath = typeof(TestClass).Assembly.Location;
+        string pluginFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../Plugins"));
+
         TextWriter console = Console.Out;
 
-        using (StringWriter sw = new StringWriter())
+        using(StringWriter sw = new StringWriter())
         {
-            try
+            try 
             {
                 Console.SetOut(sw);
-                Program.PrintLibraryInfo(dllPath);
+                PluginLoad runner = new PluginLoad();
+                runner.Run(pluginFolder);
 
                 string output = sw.ToString();
 
-                Assert.Contains("Класс: TestClass", output);
-                Assert.Contains("Атрибут: VersionAttribute", output);
-                Assert.Contains("Атрибут: DisplayNameAttribute", output);
-                Assert.Contains("Конструктор: .ctor", output);
-                Assert.Contains("Параметр: number - System.Int32", output);
-                Assert.Contains("Метод: TestMethod", output);
-                Assert.Contains("Параметр: text - System.String", output);
-                Assert.Contains("Параметр: count - System.Int32", output);
+                Assert.Contains("Вычислен размер папки.", output);
+                Assert.Contains("Файл найден.", output);
+
+                int firstStr = output.IndexOf("Вычислен размер папки.");
+                int secondStr = output.IndexOf("Файл найден.");
+            
+                Assert.True(firstStr < secondStr);
             }
             finally
             {

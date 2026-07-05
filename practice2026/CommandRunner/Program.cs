@@ -1,94 +1,87 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Collections.Generic;
+using System.Linq;
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        string dllPath;
+        string pluginFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
 
-        if (args.Length > 0)
+        PluginLoad runner = new PluginLoad();
+        runner.Run(pluginFolder);
+    }
+}
+
+public class PluginLoad
+{
+    Dictionary<string, Type> pluginTypes = new Dictionary<string, Type>();
+    Dictionary<string, string[]> dependencies = new Dictionary<string, string[]>();
+    List<string> sortedPlugins = new List<string>();
+    HashSet<string> visited = new HashSet<string>();
+
+    public void Run(string pluginFolder)
+    {
+        if (!Directory.Exists(pluginFolder))
         {
-            dllPath = args[0];
+            Console.WriteLine("Папка с плагинами не найдена.");
+            return;
         }
-        else
+
+        string[] dllFiles = Directory.GetFiles(pluginFolder, "*.dll");
+        foreach (string file in dllFiles)
         {
-            dllPath = Path.Combine(AppContext.BaseDirectory, "FileSystemCommands.dll");
+            Assembly assembly = Assembly.LoadFrom(file);
+            var commands = assembly.GetExportedTypes().Where(t => t.IsClass && typeof(ICommand).IsAssignableFrom(t));
+
+            foreach (Type type in commands)
+            {
+                var attr = type.GetCustomAttribute<PluginLoadAttribute>();
+                if (attr != null)
+                {
+                    pluginTypes[attr.Name] = type;
+                    dependencies[attr.Name] = attr.Depends;
+                }
+            }
         }
 
         try
         {
-            PrintLibraryInfo(dllPath);
+            foreach (string pluginName in pluginTypes.Keys)
+            {
+                ResolveDependencies(pluginName);
+            }
+
+            foreach (string name in sortedPlugins)
+            {
+                var command = (ICommand)Activator.CreateInstance(pluginTypes[name]);
+                command.Execute();
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Ошибка загрузки сборки: {ex.Message}");
+            Console.WriteLine($"Ошибка графа зависимостей: {ex.Message}");
         }
     }
 
-    public static void PrintLibraryInfo(string dllPath)
+    void ResolveDependencies(string pluginName)
     {
-        Assembly assembly = Assembly.LoadFrom(dllPath);
-
-        foreach (Type type in assembly.GetTypes())
+        if (visited.Contains(pluginName))
         {
-            if (type.IsClass)
+            return;
+        }
+
+        if (dependencies.ContainsKey(pluginName) && dependencies[pluginName] != null)
+        {
+            foreach (string neighbor in dependencies[pluginName])
             {
-                Console.WriteLine($"Класс: {type.FullName}");
-
-                Console.WriteLine("Атрибуты класса:");
-                foreach (object attribute in type.GetCustomAttributes(false))
-                {
-                    Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
-                }
-                Console.WriteLine();
-
-                Console.WriteLine("Конструкторы:");
-                ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                foreach (ConstructorInfo constructor in constructors)
-                {
-                    Console.WriteLine($"Конструктор: {constructor.Name}");
-
-                    Console.WriteLine("Параметры конструктора:");
-                    foreach (ParameterInfo parameter in constructor.GetParameters())
-                    {
-                        Console.WriteLine($"Параметр: {parameter.Name} - {parameter.ParameterType}");
-                    }
-
-                    Console.WriteLine("Атрибуты конструктора:");
-                    foreach (object attribute in constructor.GetCustomAttributes(false))
-                    {
-                        Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
-                    }
-                }
-                Console.WriteLine();
-
-                Console.WriteLine("Методы:");
-                MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-                foreach (MethodInfo method in methods)
-                {
-                    if (!method.IsSpecialName)
-                    {
-                        Console.WriteLine($"Метод: {method.Name}");
-                        Console.WriteLine($"Возвращаемый тип: {method.ReturnType}");
-
-                        Console.WriteLine("Параметры метода:");
-                        foreach (ParameterInfo parameter in method.GetParameters())
-                        {
-                            Console.WriteLine($"Параметр: {parameter.Name} - {parameter.ParameterType}");
-                        }
-
-                        Console.WriteLine("Атрибуты метода:");
-                        foreach (object attribute in method.GetCustomAttributes(false))
-                        {
-                            Console.WriteLine($"Атрибут: {attribute.GetType().Name}");
-                        }
-                    }
-                }
+                ResolveDependencies(neighbor);
             }
         }
+
+        visited.Add(pluginName);
+        sortedPlugins.Add(pluginName);
     }
 }
