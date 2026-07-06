@@ -1,5 +1,7 @@
 using Xunit;
 
+namespace Task04.Tests;
+
 public class SpaceshipTests
 {
     [Fact]
