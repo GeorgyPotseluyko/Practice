@@ -1,6 +1,8 @@
 using System.Reflection;
 using Xunit;
 
+namespace Task07.Tests;
+
 public class AttributeReflectionTests
 {
     [Fact]
