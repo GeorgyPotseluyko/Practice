@@ -1,5 +1,7 @@
 using Xunit;
 
+namespace Task02.Tests;
+
 public class StudentServiceTests
 {
     private List<Student> _testStudents;
