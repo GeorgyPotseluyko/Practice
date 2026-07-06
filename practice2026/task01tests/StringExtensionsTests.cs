@@ -1,5 +1,7 @@
 using Xunit;
 
+namespace Task01.Tests;
+
 public class StringExtensionsTests
 {
     [Fact]
