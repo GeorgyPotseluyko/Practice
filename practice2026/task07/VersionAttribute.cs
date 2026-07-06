@@ -1,5 +1,7 @@
 using System.Reflection;
 
+namespace Task07;
+
 [AttributeUsage(AttributeTargets.Class)]
 public class VersionAttribute : Attribute
 {
