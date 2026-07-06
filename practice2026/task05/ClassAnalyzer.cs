@@ -1,7 +1,8 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+
+namespace Task05;
 
 public class ClassAnalyzer
 {
@@ -42,5 +43,5 @@ public class ClassAnalyzer
     {
         return _type.IsDefined(typeof(T), inherit: false);
     }
-
+    
 }
