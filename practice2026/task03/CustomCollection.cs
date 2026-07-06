@@ -1,7 +1,8 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
+namespace Task03;
 
 public class CustomCollection<T> : IEnumerable<T>
 {
