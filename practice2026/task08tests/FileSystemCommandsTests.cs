@@ -2,6 +2,8 @@ using Xunit;
 using System;
 using System.IO;
 
+namespace Task08.Tests;
+
 public class FileSystemCommandsTests
 {
     [Fact]

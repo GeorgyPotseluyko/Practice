@@ -2,6 +2,8 @@
 using System.Reflection;
 using System.IO;
 
+namespace Task08;
+
 class Program
 {
     static void Main()
