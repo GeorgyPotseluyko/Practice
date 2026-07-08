@@ -1,8 +1,9 @@
-using System;
 using System.Threading.Tasks;
 using Xunit;
 using Microsoft.CodeAnalysis.Scripting;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
+
+namespace Task11.Tests;
 
 public class CalculatorTests
 {
@@ -19,7 +20,7 @@ public class CalculatorTests
             }
             return new Calculator();
         ";
-        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly);
+        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly).WithImports("System", "Task11");;
 
         ICalculator calc = await CSharpScript.EvaluateAsync<ICalculator>(code, options);
         int resAdd = calc.Add(10, 5);
@@ -43,11 +44,28 @@ public class CalculatorTests
             }
             return new Calculator();
         ";
-        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly);
+        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly).WithImports("System", "Task11");;
 
         await Assert.ThrowsAsync<CompilationErrorException>(async () =>
         {
             await CSharpScript.EvaluateAsync<ICalculator>(code, options);
+        });
+    }
+
+    [Fact]
+    public async Task InvalidSyntax_ShouldFail()
+    {
+        string code = @"
+            public class Calculator : ICalculator 
+            { 
+                public int Add(int a, int b) { return a + b } 
+            }
+            return new Calculator();
+        ";
+
+        await Assert.ThrowsAsync<CompilationErrorException>(async () =>
+        {
+            await CSharpScript.EvaluateAsync(code);
         });
     }
 
@@ -64,7 +82,7 @@ public class CalculatorTests
             }
             return new Calculator();
         ";
-        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly);
+        var options = ScriptOptions.Default.WithReferences(typeof(ICalculator).Assembly).WithImports("System", "Task11");;
 
         ICalculator calc = await CSharpScript.EvaluateAsync<ICalculator>(code, options);
 
