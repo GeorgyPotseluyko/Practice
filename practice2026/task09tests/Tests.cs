@@ -2,15 +2,7 @@
 using System.IO;
 using Xunit;
 
-[Version(1, 0)]
-[DisplayName("Класс для теста")]
-public class TestClass
-{
-    public TestClass(int number){}
-
-    [DisplayName("Метод для теста")]
-    public void TestMethod(string text, int count){}
-}
+namespace Task09.Tests;
 
 public class Tests
 {
@@ -25,7 +17,7 @@ public class Tests
             try
             {
                 Console.SetOut(sw);
-                Program.PrintLibraryInfo(dllPath);
+                bool result = Program.Run(new[] { dllPath });
 
                 string output = sw.ToString();
 
@@ -37,6 +29,31 @@ public class Tests
                 Assert.Contains("Метод: TestMethod", output);
                 Assert.Contains("Параметр: text - System.String", output);
                 Assert.Contains("Параметр: count - System.Int32", output);
+                Assert.True(result);
+            }
+            finally
+            {
+                Console.SetOut(console);
+            }
+        }
+    }
+
+    [Fact]
+    public void Run_ShouldPrintError_WhenAssemblyPathIsInvalid()
+    {
+        TextWriter console = Console.Out;
+
+        using (StringWriter sw = new StringWriter())
+        {
+            try
+            {
+                Console.SetOut(sw);
+                bool result = Program.Run(new[] { "fake_library.dll" });
+
+                string output = sw.ToString();
+
+                Assert.Contains("Ошибка загрузки сборки:", output);
+                Assert.False(result);
             }
             finally
             {

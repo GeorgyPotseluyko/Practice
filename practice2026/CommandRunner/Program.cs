@@ -2,9 +2,16 @@
 using System.IO;
 using System.Reflection;
 
+namespace Task09;
+
 public class Program
 {
     public static void Main(string[] args)
+    {
+        Run(args);
+    }
+
+    public static bool Run(string[] args)
     {
         string dllPath;
 
@@ -20,10 +27,26 @@ public class Program
         try
         {
             PrintLibraryInfo(dllPath);
+            return true;
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            Console.WriteLine($"Ошибка загрузки сборки: {ex.Message}");
+
+            foreach (Exception? loaderException in ex.LoaderExceptions)
+            {
+                if (loaderException is not null)
+                {
+                    Console.WriteLine($"Ошибка загрузчика: {loaderException.Message}");
+                }
+            }
+
+            return false;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Ошибка загрузки сборки: {ex.Message}");
+            return false;
         }
     }
 
@@ -35,7 +58,7 @@ public class Program
         {
             if (type.IsClass)
             {
-                Console.WriteLine($"Класс: {type.FullName}");
+                Console.WriteLine($"Класс: {type.Name}");
 
                 Console.WriteLine("Атрибуты класса:");
                 foreach (object attribute in type.GetCustomAttributes(false))
