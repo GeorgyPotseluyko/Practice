@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Task14;
+namespace Task15;
 
 public class DefiniteIntegral
 {
@@ -34,7 +34,6 @@ public class DefiniteIntegral
 
         object syncRoot = new object();
         var barrier = new Barrier(threadsnumber + 1);
-
         double result = 0;
         double segmentLength = (b - a) / threadsnumber;
 
@@ -61,11 +60,42 @@ public class DefiniteIntegral
 
                 barrier.SignalAndWait();
             });
-
             worker.Start();
         }
 
         barrier.SignalAndWait();
+        return isReversed ? -result : result;
+    }
+
+    public static double SolveSingleThread(double a, double b, Func<double, double> function, double step)
+    {
+        if (step <= 0)
+        {
+            throw new ArgumentException(nameof(step), "Размер шага должен быть больше нуля.");
+        }
+
+        ArgumentNullException.ThrowIfNull(function);
+
+        if (a == b)
+        {
+            return 0;
+        }
+
+        bool isReversed = false;
+        if (a > b)
+        {
+            double temp = a; a = b; b = temp;
+            isReversed = true;
+        }
+
+        double result = 0;
+        for (double x1 = a; x1 < b;)
+        {
+            double x2 = Math.Min(x1 + step, b);
+            result += (function(x1) + function(x2)) / 2.0 * (x2 - x1);
+            x1 = x2;
+        }
+
         return isReversed ? -result : result;
     }
 }
