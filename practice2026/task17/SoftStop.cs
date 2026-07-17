@@ -2,15 +2,15 @@ namespace Task17;
 
 public class SoftStop : ICommand
 {
-    private readonly ServerThread serverThread;
+    private readonly ServerThread server;
 
-    public SoftStop(ServerThread serverThread)
+    public SoftStop(ServerThread server)
     {
-        this.serverThread = serverThread;
+        this.server = server;
     }
 
     public void Execute()
     {
-        serverThread.RequestSoftStop();
+        server.RequestSoftStop();
     }
 }

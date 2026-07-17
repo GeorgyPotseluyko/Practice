@@ -2,15 +2,15 @@
 
 public class HardStop : ICommand
 {
-    private readonly ServerThread serverThread;
+    private readonly ServerThread server;
 
-    public HardStop(ServerThread serverThread)
+    public HardStop(ServerThread server)
     {
-        this.serverThread = serverThread;
+        this.server = server;
     }
 
     public void Execute()
     {
-        serverThread.RequestHardStop();
+        server.RequestHardStop();
     }
 }

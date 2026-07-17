@@ -3,6 +3,7 @@ namespace Task17;
 public class ServerThread
 {
     private readonly Queue<ICommand> commands = new();
+    private readonly IScheduler scheduler;
     private readonly object locker = new();
     private readonly Thread thread;
 
@@ -14,7 +15,11 @@ public class ServerThread
 
     public ServerThread()
     {
-        thread = new Thread(ProcessCommands);
+        scheduler = new RoundRobinScheduler();
+        thread = new Thread(ProcessCommands)
+        {
+            IsBackground = true
+        };
     }
 
     public void AddCommand(ICommand command)
@@ -91,7 +96,7 @@ public class ServerThread
 
             lock (locker)
             {
-                while (commands.Count == 0 && !hardStopRequested && !softStopRequested)
+                while (commands.Count == 0 && !scheduler.HasCommand() && !hardStopRequested && !softStopRequested)
                 {
                     Monitor.Wait(locker);
                 }
@@ -101,21 +106,32 @@ public class ServerThread
                     return;
                 }
 
-                if (softStopRequested && commands.Count == 0)
+                if (softStopRequested && commands.Count == 0 && !scheduler.HasCommand())
                 {
                     return;
                 }
 
-                command = commands.Dequeue();
+                command = commands.Count > 0 ? commands.Dequeue() : scheduler.Select();
             }
+
+            bool executedSuccessfully = false;
 
             try
             {
                 command.Execute();
+                executedSuccessfully = true;
             }
             catch (Exception exception)
             {
                 ExceptionHandler?.Invoke(command, exception);
+            }
+
+            if (executedSuccessfully && command is ILongCommand longCommand && !longCommand.IsCompleted)
+            {
+                lock (locker)
+                {
+                    scheduler.Add(command);
+                }
             }
         }
     }
