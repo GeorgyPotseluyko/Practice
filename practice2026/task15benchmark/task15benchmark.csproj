@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\task15\task14.csproj" />
+    <ProjectReference Include="..\task15\task15.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
