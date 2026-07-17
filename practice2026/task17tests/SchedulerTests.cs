@@ -1,162 +1,98 @@
 using Xunit;
 
-namespace Task17.Tests;
+namespace Task19.Tests;
 
 public class SchedulerTests
 {
     [Fact]
-    public void RoundRobin_ExecutesLongCommandsInTurns()
+    public void FiveCommands_AreExecutedThreeTimesEach()
     {
-        List<string> log = new();
-        ServerThread server = new();
+        ScenarioResult result = RunScenario();
 
-        server.AddCommand(new StepCommand("A", 3, log));
-        server.AddCommand(new StepCommand("B", 3, log));
-        server.AddCommand(new SoftStop(server));
-
-        server.Start();
-
-        Assert.True(server.Wait());
-        Assert.Equal(new[] { "A1", "B1", "A2", "B2", "A3", "B3" }, log);
+        Assert.True(result.ThreadStopped);
+        Assert.All(result.Commands, command => Assert.Equal(3, command.Counter));
     }
 
     [Fact]
-    public void LongCommand_DoesNotBlockOrdinaryCommand()
+    public void RoundRobin_ExecutesCommandsInCyclicOrder()
     {
-        List<string> log = new();
-        ServerThread server = new();
+        ScenarioResult result = RunScenario();
 
-        server.AddCommand(new StepCommand("Long", 3, log));
-        server.AddCommand(new TestCommand(() => log.Add("Simple")));
-        server.AddCommand(new SoftStop(server));
-
-        server.Start();
-
-        Assert.True(server.Wait());
-        Assert.Equal(new[] { "Long1", "Simple", "Long2", "Long3" }, log);
-    }
-
-    [Fact]
-    public void SoftStop_WaitsForLongCommandsToFinish()
-    {
-        StepCommand command = new("A", 4, new List<string>());
-        ServerThread server = new();
-
-        server.AddCommand(command);
-        server.AddCommand(new SoftStop(server));
-
-        server.Start();
-
-        Assert.True(server.Wait());
-        Assert.True(command.IsCompleted);
-        Assert.Equal(4, command.ExecutedSteps);
-    }
-
-    [Fact]
-    public void HardStop_DoesNotWaitForLongCommand()
-    {
-        StepCommand longCommand = new("A", 5, new List<string>());
-        bool lastCommandExecuted = false;
-        ServerThread server = new();
-
-        server.AddCommand(longCommand);
-        server.AddCommand(new HardStop(server));
-        server.AddCommand(new TestCommand(() => lastCommandExecuted = true));
-
-        server.Start();
-
-        Assert.True(server.Wait());
-        Assert.Equal(1, longCommand.ExecutedSteps);
-        Assert.False(longCommand.IsCompleted);
-        Assert.False(lastCommandExecuted);
-    }
-
-    [Fact]
-    public void EmptyThread_WakesWhenNewCommandIsAdded()
-    {
-        using ManualResetEventSlim executed = new(false);
-        ServerThread server = new();
-
-        server.Start();
-        server.AddCommand(new TestCommand(() => executed.Set()));
-        server.AddCommand(new SoftStop(server));
-
-        Assert.True(executed.Wait(2000));
-        Assert.True(server.Wait());
-    }
-
-    [Fact]
-    public void ExceptionInCommand_DoesNotStopNextCommand()
-    {
-        bool nextCommandExecuted = false;
-        Exception? receivedException = null;
-        ServerThread server = new();
-
-        server.ExceptionHandler = (_, exception) => receivedException = exception;
-        server.AddCommand(new TestCommand(() => throw new InvalidOperationException("Ошибка команды")));
-        server.AddCommand(new TestCommand(() => nextCommandExecuted = true));
-        server.AddCommand(new SoftStop(server));
-
-        server.Start();
-
-        Assert.True(server.Wait());
-        Assert.IsType<InvalidOperationException>(receivedException);
-        Assert.True(nextCommandExecuted);
-    }
-
-    [Fact]
-    public void HardStop_OutsideItsServerThread_ThrowsException()
-    {
-        ServerThread server = new();
-        HardStop command = new(server);
-
-        Assert.Throws<InvalidOperationException>(() => command.Execute());
-    }
-
-    [Fact]
-    public void SoftStop_OutsideItsServerThread_ThrowsException()
-    {
-        ServerThread server = new();
-        SoftStop command = new(server);
-
-        Assert.Throws<InvalidOperationException>(() => command.Execute());
-    }
-
-    private class TestCommand : ICommand
-    {
-        private readonly Action action;
-
-        public TestCommand(Action action)
+        int[] expectedOrder =
         {
-            this.action = action;
+            1, 2, 3, 4, 5,
+            1, 2, 3, 4, 5,
+            1, 2, 3, 4, 5
+        };
+
+        Assert.Equal(expectedOrder, result.ExecutionOrder);
+    }
+
+    [Fact]
+    public void HardStop_PreventsFourthExecution()
+    {
+        ScenarioResult result = RunScenario();
+
+        Assert.Equal(15, result.ExecutionOrder.Count);
+        Assert.DoesNotContain(result.Commands, command => command.Counter > 3);
+    }
+
+    [Fact]
+    public void TestCommand_RemainsLongRunningUntilExternalStop()
+    {
+        TestCommand command = new(1);
+
+        command.Execute();
+        command.Execute();
+        command.Execute();
+
+        Assert.Equal(3, command.Counter);
+        Assert.False(command.IsCompleted);
+    }
+
+    [Fact]
+    public void HardStop_ExecutedOutsideTargetThread_ThrowsException()
+    {
+        ServerThread server = new();
+        HardStop hardStop = new(server);
+
+        Assert.Throws<InvalidOperationException>(() => hardStop.Execute());
+    }
+
+    private static ScenarioResult RunScenario()
+    {
+        ServerThread server = new();
+        List<TestCommand> commands = new();
+        List<int> executionOrder = new();
+        int commandsExecutedThreeTimes = 0;
+
+        void AfterExecute(TestCommand command)
+        {
+            executionOrder.Add(command.Id);
+
+            if (command.Counter == 3)
+            {
+                commandsExecutedThreeTimes++;
+
+                if (commandsExecutedThreeTimes == 5)
+                {
+                    server.AddCommand(new HardStop(server));
+                }
+            }
         }
 
-        public void Execute()
+        for (int id = 1; id <= 5; id++)
         {
-            action();
+            TestCommand command = new(id, AfterExecute);
+            commands.Add(command);
+            server.AddCommand(command);
         }
+
+        server.Start();
+        bool stopped = server.Wait();
+
+        return new ScenarioResult(commands, executionOrder, stopped);
     }
 
-    private class StepCommand : ILongCommand
-    {
-        private readonly string name;
-        private readonly int totalSteps;
-        private readonly List<string> log;
-
-        public int ExecutedSteps { get; private set; }
-        public bool IsCompleted => ExecutedSteps >= totalSteps;
-
-        public StepCommand(string name, int totalSteps, List<string> log)
-        {
-            this.name = name;
-            this.totalSteps = totalSteps;
-            this.log = log;
-        }
-
-        public void Execute()
-        {
-            ExecutedSteps++;
-            log.Add($"{name}{ExecutedSteps}");
-        }
-    }
+    private sealed record ScenarioResult(List<TestCommand> Commands, List<int> ExecutionOrder, bool ThreadStopped);
 }

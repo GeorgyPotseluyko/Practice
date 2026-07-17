@@ -2,9 +2,9 @@ using System.Globalization;
 using ScottPlot;
 using ScottPlot.TickGenerators;
 
-namespace Task18.Graphs;
+namespace Task19.Graphs;
 
-internal static class Program
+internal static class Graph18
 {
     private const int ImageWidth = 1000;
     private const int ImageHeight = 600;

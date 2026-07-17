@@ -1,4 +1,4 @@
-namespace Task17;
+namespace Task19;
 
 public class SoftStop : ICommand
 {
