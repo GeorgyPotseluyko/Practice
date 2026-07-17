@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace Task17.Tests;
+namespace Task18.Tests;
 
 public class SchedulerTests
 {

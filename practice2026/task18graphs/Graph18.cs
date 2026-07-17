@@ -4,12 +4,12 @@ using ScottPlot.TickGenerators;
 
 namespace Task18.Graphs;
 
-internal static class Program
+internal static class Graph18
 {
     private const int ImageWidth = 1000;
     private const int ImageHeight = 600;
 
-    private static readonly string ReportDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    private static readonly string ReportDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "images"));
 
     private static void Main()
     {
