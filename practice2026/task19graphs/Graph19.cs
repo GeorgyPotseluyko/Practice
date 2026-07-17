@@ -1,6 +1,5 @@
 using ScottPlot;
 using ScottPlot.TickGenerators;
-using Task17;
 
 namespace Task19.Graphs;
 
